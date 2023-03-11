@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Form, Button, Row, Col } from "react-bootstrap";
+import { Form, Button, Row, Col ,Table  } from "react-bootstrap";
+import { LinkContainer } from 'react-router-bootstrap'
 import { useDispatch, useSelector } from "react-redux";
 import Message from "../components/Message";
 import Loader from "../components/Loader";
+import {formatPrice} from '../utils/Helpers.js'
 import { getUserDetails, updateUserProfile } from "../actions/userActions";
 import FormContainer from "../components/FormContainer";
 import { USER_UPDATE_PROFILE_RESET } from "../constants/userConstant";
+import {listMyOrders } from '../actions/orderAction'
+
 const ProfilePage = ({ location, history }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,6 +32,9 @@ const ProfilePage = ({ location, history }) => {
   const userUpdateProfile = useSelector((state) => state.userUpdateProfile);
   const { success } = userUpdateProfile;
 
+  const orderListMy = useSelector((state) => state.orderListMy)
+  const { loading: loadingOrders, error: errorOrders, orders } = orderListMy
+
   useEffect(() => {
     if (!userInfo) {
       history.push("/login");
@@ -35,6 +42,7 @@ const ProfilePage = ({ location, history }) => {
       if (!user.name || !user || success) {
         dispatch({ type: USER_UPDATE_PROFILE_RESET });
         dispatch(getUserDetails("profile"));
+        dispatch(listMyOrders())
       } else {
         setName(user.name);
         setEmail(user.email);
@@ -50,6 +58,7 @@ const ProfilePage = ({ location, history }) => {
       dispatch(updateUserProfile({ id: user._id, name, email, password }));
     }
   };
+  
   return (
     <>
       <Row>
@@ -64,7 +73,7 @@ const ProfilePage = ({ location, history }) => {
           ) : (
             <Form onSubmit={submitHandler}>
               <Form.Group controlId="name">
-                <Form.Label>Name</Form.Label>
+                <Form.Label className="mt-3">Name</Form.Label>
                 <Form.Control
                   type="name"
                   placeholder="Enter name"
@@ -74,7 +83,7 @@ const ProfilePage = ({ location, history }) => {
               </Form.Group>
 
               <Form.Group controlId="email">
-                <Form.Label>Email Address</Form.Label>
+                <Form.Label className="mt-3">Email Address</Form.Label>
                 <Form.Control
                   type="email"
                   placeholder="Enter email"
@@ -84,7 +93,7 @@ const ProfilePage = ({ location, history }) => {
               </Form.Group>
 
               <Form.Group controlId="password">
-                <Form.Label>Password</Form.Label>
+                <Form.Label className="mt-3">Password</Form.Label>
                 <Form.Control
                   type="password"
                   placeholder="Enter password"
@@ -94,7 +103,7 @@ const ProfilePage = ({ location, history }) => {
               </Form.Group>
 
               <Form.Group controlId="confirmPassword">
-                <Form.Label>Confirm Password</Form.Label>
+                <Form.Label className="mt-3">Confirm Password</Form.Label>
                 <Form.Control
                   type="password"
                   placeholder="Confirm password"
@@ -110,7 +119,72 @@ const ProfilePage = ({ location, history }) => {
           )}
         </Col>
         <Col md={9}>
-          <h2>My Orders</h2>
+          <h2 className="mb-4">My Orders</h2>
+          {loadingOrders ? (
+          <Loader />
+        ) : errorOrders ? (
+          <Message variant='danger'>{errorOrders}</Message>
+        ) : (
+          <Table striped bordered hover responsive className='table-sm'>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>DATE</th>
+                <th>TOTAL</th>
+                <th>PAID</th>
+                <th>DELIVERED</th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order._id}>
+                  <td>{order._id}</td>
+                  <td>{  order.createdAt && order.createdAt.substr(0,10)}</td>
+                  <td>{formatPrice(order.totalPrice)}</td>
+                  <td>
+                    {order.isPaid ? (
+                    order.paidAt && order.paidAt.substr(0,10)
+                    ) : (
+                      <i className='fas fa-times' style={{ color: 'red' }}></i>
+                    )}
+                  </td>
+                  <td>
+                    {order.isDelivered ? (
+                      order.deliveredAt
+                    ) : (
+                      <i className='fas fa-times' style={{ color: 'red' }}></i>
+                    )}
+                  </td>
+                  <td>
+                    <LinkContainer to={`/order/${order._id}`}>
+                      <Button className='btn-sm' variant='light'>
+                        Details
+                      </Button>
+                    </LinkContainer>
+                  </td>
+                  <td>
+                    
+                      {
+                        !order.isPaid ? (
+                          <Button  className='btn-sm' variant='light'>
+                        Cancel
+                      </Button>
+                      
+                        ): order.isPaid && !order.isDelivered ? (<Button className='btn-sm' variant='light'>
+                        pending
+                      </Button>):<Button className='btn-sm' variant='light'>
+                        DELIVERED
+                      </Button>
+                      }
+                   
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
         </Col>
       </Row>
     </>

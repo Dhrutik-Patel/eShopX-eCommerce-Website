@@ -29,3 +29,4 @@ const productSchema = mongoose.Schema(
 const Product = mongoose.model('Product', productSchema);
 
 export default Product;
+//in the mongosdb always use timestamp = true 
